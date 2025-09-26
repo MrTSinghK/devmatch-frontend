@@ -1,3 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* small custom styles for visuals */
+:root {
+  --dm-indigo: #6366F1;
+}
+
+body { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

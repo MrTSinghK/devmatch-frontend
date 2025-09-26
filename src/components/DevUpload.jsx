@@ -1,80 +1,107 @@
+// src/components/DevUpload.jsx
 import React, { useState } from "react";
-import api from "../api";
+import { parseResume, saveDeveloper } from "../api";
 import SkillEditor from "./SkillEditor";
 import Loading from "./Loading";
 
-export default function DevUpload(){
-  const [name,setName] = useState("");
-  const [email,setEmail] = useState("");
-  const [file,setFile] = useState(null);
-  const [parsedSkills,setParsedSkills] = useState([]);
+export default function DevUpload() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [file, setFile] = useState(null);
+  const [parsedSkills, setParsedSkills] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [savedDev, setSavedDev] = useState(null);
+  const [saved, setSaved] = useState(null);
 
-  async function handleUpload(e){
-    e.preventDefault();
-    if(!file) return alert("Please choose a resume file");
+  async function handleParse(e) {
+    e?.preventDefault();
+    if (!file) return alert("Please choose a resume file");
     setLoading(true);
-    try{
-      const form = new FormData();
-      form.append("file", file);
-      form.append("name", name);
-      form.append("email", email);
-
-      const res = await api.post("/dev/upload", form, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
-      setParsedSkills(res.data.parsed_skills || []);
-      setSavedDev(null);
-    }catch(err){
+    try {
+      const data = await parseResume({ name, email, file });
+      setParsedSkills(data.parsed_skills || []);
+      setSaved(null);
+    } catch (err) {
       console.error(err);
-      alert("Upload failed — using mock data if backend is offline.");
-      // optional: set mocked parsed skills for dev work
-    }finally{ setLoading(false); }
+      alert("Parse failed, using fallback (mock or re-try).");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function saveDeveloper(){
+  async function handleSave() {
     setLoading(true);
-    try{
-      const payload = { name, email, parsed_skills: parsedSkills };
-      const res = await api.post("/dev/save", payload);
-      setSavedDev(res.data);
-      alert("Saved!");
-    }catch(err){
+    try {
+      const res = await saveDeveloper({ name, email, parsed_skills: parsedSkills });
+      setSaved(res);
+      alert("Saved (mock or API)!");
+    } catch (err) {
       console.error(err);
-      alert("Save failed — check backend.");
-    }finally{ setLoading(false); }
+      alert("Save failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-semibold mb-4">Developer — Upload Resume</h2>
-      <form onSubmit={handleUpload} className="space-y-4">
-        <div className="flex gap-4">
-          <input required value={name} onChange={e=>setName(e.target.value)} placeholder="Full name" className="p-2 border rounded w-1/2"/>
-          <input required value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="p-2 border rounded w-1/2"/>
-        </div>
-        <input onChange={e=>setFile(e.target.files[0])} type="file" accept=".pdf,.docx,.doc" />
-        <div>
-          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Parse Resume</button>
-        </div>
-      </form>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2">
+        <div className="bg-white shadow-md rounded-lg p-4">
+          <h2 className="text-2xl font-semibold">Upload Resume</h2>
+          <p className="text-sm text-gray-600">Upload a PDF/DOCX — we extract skills and suggest scores.</p>
 
-      {loading && <Loading />}
+          <form onSubmit={handleParse} className="mt-3 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="p-3 border rounded-md w-full" />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="p-3 border rounded-md w-full" />
+            </div>
 
-      {parsedSkills.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-medium">Parsed skills</h3>
-          <p className="text-sm text-slate-600 mb-2">Edit scores and add/remove skills before saving.</p>
-          <SkillEditor skills={parsedSkills} onChange={setParsedSkills} />
-          <div className="mt-4">
-            <button onClick={saveDeveloper} className="px-4 py-2 bg-green-600 text-white rounded">Save Developer</button>
-          </div>
+            <div>
+              <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setFile(e.target.files[0])} />
+            </div>
+
+            <div className="flex gap-3">
+              <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md shadow">Parse Resume</button>
+              <button type="button" onClick={() => { setParsedSkills([]); setSaved(null); setFile(null); }} className="px-4 py-2 border rounded-md">Reset</button>
+            </div>
+          </form>
+
+          {loading && <div className="mt-4"><Loading text="Working..." /></div>}
+
+          {parsedSkills.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Parsed skills</h3>
+                <div className="text-sm text-gray-500">Edit before saving</div>
+              </div>
+              <div className="mt-3 space-y-3">
+                <SkillEditor skills={parsedSkills} onChange={setParsedSkills} />
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded-md shadow">Save Developer</button>
+                <button onClick={() => { navigator.clipboard.writeText(JSON.stringify(parsedSkills, null, 2)); alert("Copied JSON"); }} className="px-3 py-2 border rounded">Copy JSON</button>
+              </div>
+            </div>
+          )}
+
+          {saved && <div className="mt-4 p-3 bg-green-50 border rounded text-sm">Saved: {JSON.stringify(saved)}</div>}
         </div>
-      )}
+      </div>
 
-      {savedDev && <pre className="mt-4 bg-slate-50 p-3 rounded text-sm">{JSON.stringify(savedDev, null, 2)}</pre>}
+      <div>
+        <div className="bg-white shadow-md rounded-lg p-4">
+          <h4 className="text-lg font-medium">Quick Tips</h4>
+          <ul className="text-sm text-gray-600 mt-2 space-y-2">
+            <li>Use realistic resumes for better demos.</li>
+            <li>Adjust per-skill scores to reflect seniority.</li>
+            <li>Saved devs show up in Client matches.</li>
+          </ul>
+        </div>
+
+        <div className="bg-white shadow-md rounded-lg p-4 mt-4">
+          <h4 className="text-sm font-semibold">Demo Mode</h4>
+          <div className="text-sm text-gray-600">Running in <strong>{!import.meta.env.VITE_API_URL ? "mock" : "api"}</strong> mode</div>
+        </div>
+      </div>
     </div>
   );
 }

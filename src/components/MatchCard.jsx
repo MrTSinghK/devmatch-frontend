@@ -1,27 +1,34 @@
+// src/components/MatchCard.jsx
 import React from "react";
 
-export default function MatchCard({item}){
-  // item: {name, overall_score, matched_skills: [{skill,score,evidence}], years_experience}
+export default function MatchCard({ data, onShowEvidence }) {
+  const score = Math.round(data.computed_score ?? data.overall_score ?? 0);
   return (
-    <div className="p-4 border rounded mb-3 flex justify-between items-start">
-      <div>
-        <div className="flex items-baseline gap-3">
-          <h3 className="text-lg font-semibold">{item.name}</h3>
-          <span className="text-sm text-slate-500">({item.years_experience} yrs)</span>
+    <div className="p-3 border rounded-md flex items-start gap-4 hover:shadow-sm transition bg-white">
+      <div className="w-14 h-14 rounded-md bg-indigo-50 flex items-center justify-center font-semibold text-indigo-700">
+        {data.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-lg font-semibold">{data.name}</div>
+            <div className="text-sm text-gray-500">{data.location || "—"} • {data.years_experience ?? "—"} yrs</div>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold text-indigo-600">{score}</div>
+            <div className="text-xs text-gray-500">match</div>
+          </div>
         </div>
-        <div className="mt-2 flex gap-2 flex-wrap">
-          {item.matched_skills.map((s,i) => (
-            <div key={i} className="bg-slate-100 p-2 rounded text-sm">
+
+        <div className="mt-3 flex gap-2 flex-wrap">
+          {(data.matched_skills || []).map((s, i) => (
+            <div key={i} className="p-2 bg-gray-50 border rounded text-sm">
               <div className="font-medium">{s.skill}</div>
-              <div className="text-xs text-slate-600">score: {s.score}</div>
-              <div className="text-xs text-slate-500 mt-1">{s.evidence?.slice(0,80)}{s.evidence?.length>80?'...':''}</div>
+              <div className="text-xs text-gray-500">score: {s.score}</div>
+              <button onClick={() => onShowEvidence(s)} className="text-xs text-indigo-600 mt-1">view evidence</button>
             </div>
           ))}
         </div>
-      </div>
-      <div className="text-right">
-        <div className="text-3xl font-bold">{Math.round(item.overall_score)}</div>
-        <div className="text-sm text-slate-600">match score</div>
       </div>
     </div>
   );

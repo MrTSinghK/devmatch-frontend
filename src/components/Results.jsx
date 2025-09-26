@@ -1,16 +1,23 @@
+// src/components/Results.jsx
 import React from "react";
 import MatchCard from "./MatchCard";
 
-export default function Results({data}){
-  if(!data) return null;
-  const matches = data.matches || [];
+export default function Results({ results, onShowEvidence }) {
+  if (!results) return null;
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h2 className="text-2xl mb-4">Matching Results</h2>
-      <div className="mb-4 text-sm text-slate-600">Required skills: {data.required_skills.join(", ")}</div>
-      <div>
-        {matches.length === 0 && <div className="p-4 bg-yellow-50 border rounded">No matches found.</div>}
-        {matches.map(m => <MatchCard key={m.dev_id} item={m} />)}
+    <div className="mt-4">
+      <div className="bg-white shadow-md rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Results</h3>
+          <div className="text-sm text-gray-600">Found {results.matches?.length ?? 0} candidates</div>
+        </div>
+        <div className="mt-3 space-y-3">
+          {results.matches && results.matches.length ? (
+            results.matches.map((m) => <MatchCard key={m.dev_id || m.name} data={m} onShowEvidence={onShowEvidence} />)
+          ) : (
+            <div className="p-4 text-sm text-gray-600">No matches found</div>
+          )}
+        </div>
       </div>
     </div>
   );
